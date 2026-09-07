@@ -1,0 +1,6 @@
+{
+  "name": "WormGPT Cyber Intelligence",
+  "description": "Terminalowa platforma wywiadu cybernetycznego, audytu podatności kodu, badań bezpieczeństwa Red/Blue Team oraz analizy aplikacji Tauri i Rust.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
