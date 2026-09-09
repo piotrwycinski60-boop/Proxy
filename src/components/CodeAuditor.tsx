@@ -114,7 +114,7 @@ export const CodeAuditor: React.FC<CodeAuditorProps> = ({ selectedModel }) => {
           code: sourceCode,
           language,
           context,
-          model: selectedModel || 'gemini-3.8-flash',
+          model: selectedModel || 'gemini-3.1-pro-preview',
         }),
       });
 

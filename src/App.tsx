@@ -20,18 +20,21 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState<AIModelId>(() => {
     try {
       const saved = localStorage.getItem('wormgpt_selected_model');
+      if (saved === 'gemini-3.1-pro-preview') {
+        return saved;
+      }
       if (
-        saved === 'gemini-3.8-flash' ||
-        saved === 'gemini-3.1-pro-preview' ||
         saved === 'gemini-3.1-flash-lite' ||
         saved === 'gemini-flash-latest'
       ) {
         return saved;
       }
+      // Migrate previous default 'gemini-3.8-flash' to the requested 'gemini-3.1-pro-preview'
+      localStorage.setItem('wormgpt_selected_model', 'gemini-3.1-pro-preview');
     } catch {
       // ignore
     }
-    return 'gemini-3.8-flash';
+    return 'gemini-3.1-pro-preview';
   });
 
   const handleSelectModel = (model: AIModelId) => {
@@ -95,6 +98,8 @@ export default function App() {
       <ReverseApiModal
         isOpen={isReverseModalOpen}
         onClose={() => setIsReverseModalOpen(false)}
+        selectedModel={selectedModel}
+        onSelectModel={handleSelectModel}
         onSelectProModel={() => handleSelectModel('gemini-3.1-pro-preview')}
         isProSelected={selectedModel === 'gemini-3.1-pro-preview'}
       />
@@ -114,7 +119,7 @@ export default function App() {
             onClick={() => setIsReverseModalOpen(true)}
             className="text-emerald-400 hover:text-emerald-300 text-[11px] font-mono inline-flex items-center gap-1 cursor-pointer transition-colors"
           >
-            ⚡ Odwrócony API Gemini 3.1 Pro (Wbudowany w kod)
+            ⚡ Odwrócony API: Wszystkie Modele (Wbudowany w kod)
           </button>
         </div>
 

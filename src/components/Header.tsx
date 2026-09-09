@@ -103,13 +103,15 @@ export const Header: React.FC<HeaderProps> = ({
                   playTerminalKeySound();
                 }}
                 className={`font-mono text-[11px] font-medium inline-flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer border transition-all ${
-                  geminiConnected
-                    ? 'text-cyan-300 bg-cyan-950/60 border-cyan-800/80 hover:bg-cyan-900/70 hover:border-cyan-600'
-                    : 'text-amber-300 bg-amber-950/60 border-amber-800/80 hover:bg-amber-900/70'
+                  !geminiConnected
+                    ? 'text-amber-300 bg-amber-950/60 border-amber-800/80 hover:bg-amber-900/70'
+                    : selectedModel === 'gemini-3.1-pro-preview'
+                    ? 'text-emerald-300 bg-emerald-950/70 border-emerald-600/80 hover:bg-emerald-900/70 hover:border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                    : 'text-cyan-300 bg-cyan-950/60 border-cyan-800/80 hover:bg-cyan-900/70 hover:border-cyan-600'
                 }`}
                 title="Kliknij, aby przełączyć model AI"
               >
-                <Cpu className="w-3 h-3 text-cyan-400" />
+                <Cpu className={`w-3 h-3 ${selectedModel === 'gemini-3.1-pro-preview' ? 'text-emerald-400' : 'text-cyan-400'}`} />
                 <span>
                   {geminiConnected ? currentModel.name : 'Lokalny Tryb Heurystyczny'}
                 </span>
@@ -188,9 +190,9 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-full text-center py-1.5 rounded bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-800/80 flex items-center justify-center gap-1.5 cursor-pointer font-medium transition-colors"
                     >
                       <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                      Diagnostyka Odwróconego API Gemini 3.1 Pro
+                      Diagnostyka Uniwersalnego Odwróconego API (4/4)
                     </button>
-                    <span className="text-slate-500 text-center">Wszystkie zapytania kierowane są do wybranego modelu</span>
+                    <span className="text-slate-500 text-center">Uniwersalna ochrona stealth i 0% blokad quota dla wszystkich modeli</span>
                   </div>
                 </div>
               )}
@@ -205,10 +207,10 @@ export const Header: React.FC<HeaderProps> = ({
               playTerminalKeySound();
             }}
             className="font-mono text-[11px] inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-emerald-700/80 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60 transition-all cursor-pointer shadow-sm"
-            title="Wbudowany Odwrócony Interfejs API dla Gemini 3.1 Pro – kliknij, aby otworzyć diagnostykę i konfigurację"
+            title="Uniwersalny Odwrócony Interfejs API dla wszystkich modeli Gemini – kliknij, aby otworzyć diagnostykę i konfigurację"
           >
             <Zap className="w-3 h-3 text-emerald-400" />
-            <span>ODWRÓCONY API 3.1 PRO: AKTYWNY</span>
+            <span>ODWRÓCONY API: WSZYSTKIE MODELE (4/4)</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           </button>
         </div>

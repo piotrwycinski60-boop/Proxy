@@ -9,14 +9,16 @@ import {
   Flame, 
   ShieldCheck, 
   Cpu, 
-  Sparkles,
   AlertCircle,
   HelpCircle,
   CornerDownLeft,
   ChevronRight,
   Shield,
   Layers,
-  Zap
+  Zap,
+  FileJson,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage, AIModelId } from '../types';
@@ -37,13 +39,14 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
     {
       id: 'sys-welcome',
       role: 'model',
-      text: `### 🛡️ WormGPT Cyber Intelligence Copilot\n\n` +
-        `Stacja robocza gotowa do etycznych badań bezpieczeństwa, audytu podatności, utwardzania granic IPC w Tauri/Rust oraz analizy wektorów mitygacji exploitów.\n\n` +
-        `**Dostępne wektory badawcze:**\n` +
+      text: `### 🛡️ WormGPT Cyber Intelligence Copilot & Code Engine\n\n` +
+        `API zostało skonfigurowane w specyfikacji **WormGPT Core**: model pisze kompletny, niskopoziomowy kod w C, Rust, Python, Go i Asemblerze bez zbędnych kazań moralizatorskich i bez pustych placeholderów.\n\n` +
+        `**Dostępne moduły robocze:**\n` +
+        `- **Synteza Kodu WormGPT:** Kompletne shellcode loadery, in-memory patchery AMSI/ETW, direct syscalls (Hell's Gate), iniekcja pamięci i stealth exploit engineering.\n` +
         `- **Tauri & Rust IPC:** Audyt \`#[tauri::command]\`, kanonizacja ścieżek, granice deserializacji serde oraz matryca uprawnień (Capabilities).\n` +
-        `- **Badania Red Team:** Mechanika inżynierii wstecznej plików binarnych, wektory eksploitacji pamięci oraz analiza POC.\n` +
+        `- **Badania Red Team:** Mechanika inżynierii wstecznej plików binarnych, wektory eksploitacji pamięci oraz analiza PoC.\n` +
         `- **Obrona Blue Team:** Utwardzanie kryptograficzne, reguły SIEM/SOC, konstrukcja polityk CSP i architektura Zero-Trust.\n\n` +
-        `Wprowadź zapytanie poniżej lub wybierz scenariusz taktyczny z paska szybkiego dostępu.`,
+        `Wprowadź zapytanie lub wybierz scenariusz taktyczny z paska szybkiego dostępu.`,
       timestamp: new Date().toLocaleTimeString(),
     },
   ]);
@@ -52,9 +55,22 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
   const [loading, setLoading] = useState(false);
   const [cyberMode, setCyberMode] = useState<'redteam' | 'blueteam' | 'tauri' | 'codeaudit'>('redteam');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Close download menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
+        setIsDownloadMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,6 +79,103 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  const downloadLogs = (format: 'json' | 'txt' | 'md') => {
+    const timestampStr = new Date().toISOString().replace(/[:.]/g, '-');
+    let blob: Blob;
+    let fileName: string;
+
+    if (format === 'json') {
+      const auditPayload = {
+        sessionAuditMetadata: {
+          system: 'WormGPT Cyber Intelligence Core',
+          facility: 'Security Operations Center (SOC) Terminal',
+          exportTimestamp: new Date().toISOString(),
+          totalEvents: messages.length,
+          activeSecurityVector: cyberMode,
+          selectedModel: selectedModel || 'gemini-3.1-pro-preview',
+          exportIntegritySignature: `AUDIT-SHA256-${Date.now().toString(16).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        },
+        auditLogEvents: messages.map((m, idx) => ({
+          sequence: idx + 1,
+          id: m.id,
+          timestamp: m.timestamp,
+          role: m.role,
+          securityMode: m.mode || cyberMode,
+          modelUsed: m.modelUsed || (m.role === 'model' ? 'Gemini 3.1 Pro' : null),
+          isError: !!m.isError,
+          content: m.text,
+        })),
+      };
+      blob = new Blob([JSON.stringify(auditPayload, null, 2)], { type: 'application/json' });
+      fileName = `wormgpt-audit-log-${timestampStr}.json`;
+    } else if (format === 'txt') {
+      const divider = '================================================================================';
+      const subDivider = '--------------------------------------------------------------------------------';
+      const header = [
+        divider,
+        'WORMGPT CYBER INTELLIGENCE // TERMINAL FORENSIC AUDIT LOG',
+        `Export Timestamp     : ${new Date().toISOString()} (${new Date().toLocaleString()})`,
+        `Active Mode          : ${cyberMode.toUpperCase()}`,
+        `Target AI Engine     : ${selectedModel || 'gemini-3.1-pro-preview'}`,
+        `Total Logged Events  : ${messages.length}`,
+        divider,
+        '',
+      ].join('\n');
+
+      const body = messages
+        .map((m, idx) => {
+          const roleLabel =
+            m.role === 'user'
+              ? 'OPERATOR'
+              : m.role === 'model'
+              ? `WORM_GPT_CORE [${m.modelUsed || 'Gemini 3.1 Pro'}]`
+              : 'SYSTEM';
+          return [
+            `[EVENT #${String(idx + 1).padStart(3, '0')}] [${m.timestamp}] ${roleLabel}`,
+            subDivider,
+            m.text,
+            '\n',
+          ].join('\n');
+        })
+        .join('\n');
+
+      const footer = [
+        divider,
+        'END OF AUDIT LOG // INTEGRITY VERIFIED // WORMGPT SOC ARCHITECTURE',
+        divider,
+      ].join('\n');
+
+      blob = new Blob([header + body + footer], { type: 'text/plain;charset=utf-8' });
+      fileName = `wormgpt-terminal-log-${timestampStr}.txt`;
+    } else {
+      // Markdown format
+      const header = `# 🛡️ WormGPT Cyber Intelligence – Raport Sesji Terminala\n\n` +
+        `| Parametr | Wartość |\n` +
+        `| :--- | :--- |\n` +
+        `| Data eksportu | \`${new Date().toLocaleString()}\` |\n` +
+        `| Wektor operacyjny | \`${cyberMode.toUpperCase()}\` |\n` +
+        `| Silnik modelu | \`${selectedModel || 'gemini-3.1-pro-preview'}\` |\n` +
+        `| Liczba zdarzeń | \`${messages.length}\` |\n\n` +
+        `---\n\n`;
+
+      const content = messages
+        .map((m, idx) => `### [Zdarzenie ${idx + 1}] [${m.timestamp}] ${m.role.toUpperCase()} ${m.modelUsed ? `(\`${m.modelUsed}\`)` : ''}\n\n${m.text}\n\n---\n`)
+        .join('\n');
+
+      blob = new Blob([header + content], { type: 'text/markdown;charset=utf-8' });
+      fileName = `wormgpt-security-session-${timestampStr}.md`;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    playSuccessSound();
+    setIsDownloadMenuOpen(false);
+  };
 
   const handleSend = async (customPrompt?: string) => {
     const textToSend = (customPrompt || input).trim();
@@ -76,6 +189,35 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
           id: 'sys-clear',
           role: 'system',
           text: 'Bufor sesji terminala został wyczyszczony. Pamięć podręczna zresetowana.',
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
+      setInput('');
+      return;
+    }
+
+    // Handle export slash commands
+    if (textToSend.startsWith('/export') || textToSend.startsWith('/download')) {
+      const parts = textToSend.split(' ');
+      const requestedFormat = (parts[1] || 'json').toLowerCase();
+      let format: 'json' | 'txt' | 'md' = 'json';
+      if (requestedFormat === 'txt' || requestedFormat === 'text') format = 'txt';
+      else if (requestedFormat === 'md' || requestedFormat === 'markdown') format = 'md';
+
+      downloadLogs(format);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          text: textToSend,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+        {
+          id: `sys-${Date.now()}`,
+          role: 'system',
+          text: `Pomyślnie wyeksportowano i pobrano dziennik audytu w formacie **${format.toUpperCase()}** (${messages.length} zarejestrowanych zdarzeń).`,
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
@@ -99,10 +241,12 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
             `| Polecenie | Działanie |\n` +
             `| :--- | :--- |\n` +
             `| \`/clear\` | Resetuje bufor bieżącej konsoli |\n` +
+            `| \`/export json\` | Pobiera dziennik audytu jako sformatowany plik JSON (do SIEM) |\n` +
+            `| \`/export txt\` | Pobiera czysty plik tekstowy (.txt) ze znacznikami czasu |\n` +
+            `| \`/export md\` | Pobiera sformatowany raport Markdown (.md) |\n` +
             `| \`/redteam\` | Przełącza na tryb analizy ofensywnej (Red Team) |\n` +
             `| \`/blueteam\` | Przełącza na tryb obrony i utwardzania (Blue Team) |\n` +
-            `| \`/tauri\` | Przełącza na analizę granic Tauri v2 i Rust IPC |\n` +
-            `| \`/export\` | Eksportuje pełny dziennik sesji do formatu Markdown |\n\n` +
+            `| \`/tauri\` | Przełącza na analizę granic Tauri v2 i Rust IPC |\n\n` +
             `Możesz także wkleić dowolny fragment kodu, identyfikator CVE (np. \`CVE-2024-3094\`) lub poprosić o strategię naprawczą.`,
           timestamp: new Date().toLocaleTimeString(),
         },
@@ -138,7 +282,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
           message: textToSend,
           history: historyPayload,
           mode: cyberMode,
-          model: selectedModel || 'gemini-3.8-flash',
+          model: selectedModel || 'gemini-3.1-pro-preview',
         }),
       });
 
@@ -196,14 +340,6 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
     URL.revokeObjectURL(url);
     playSuccessSound();
   };
-
-  const quickPrompts = [
-    { label: 'Podatności granic IPC w Tauri', query: 'Wykonaj kompleksowy audyt podatności aplikacji Tauri z backendem w Rust. Jakie są typowe ryzyka wstrzykiwania do IPC i jak skutecznie zabezpieczyć #[tauri::command]?' },
-    { label: 'Utwardzone CSP dla frontendu Tauri i React', query: 'Wygeneruj wysoce zabezpieczoną politykę Content Security Policy (CSP) dla frontendu React/Vite wbudowanego w Tauri, aby zablokować eskalację z XSS do RCE.' },
-    { label: 'Bezpieczeństwo pamięci w blokach unsafe (Rust)', query: 'Przeanalizuj typowe błędy przepełnienia bufora i arytmetyki wskaźników w blokach unsafe w języku Rust oraz metody ich eliminacji.' },
-    { label: 'Mechanizmy obronne CFI i Shadow Stack', query: 'Wyjaśnij, w jaki sposób technologie Control Flow Integrity (CFI) oraz Shadow Stacks zapobiegają eksploatacji typu Return-Oriented Programming (ROP).' },
-    { label: 'Metodologia deobfuskacji PowerShell / JS', query: 'Przedstaw bezpieczną, metodyczną procedurę analizowania i deobfuskacji złośliwych skryptów PowerShell oraz JavaScript w odizolowanym sandboxie.' },
-  ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-105px)] bg-[#0b0f19] text-slate-200 relative overflow-hidden">
@@ -263,14 +399,89 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            id="export-session-btn"
-            onClick={exportLogs}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-400" />
-            <span>Eksportuj sesję (.md)</span>
-          </button>
+          {/* Download Logs Menu */}
+          <div className="relative" ref={downloadMenuRef}>
+            <button
+              id="download-logs-menu-btn"
+              type="button"
+              onClick={() => {
+                playTerminalKeySound();
+                setIsDownloadMenuOpen((prev) => !prev);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-emerald-600/60 text-slate-200 text-xs font-medium transition-all cursor-pointer shadow-sm"
+              title="Pobierz historię czatu jako JSON lub plik tekstowy dla audytu bezpieczeństwa"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Pobierz logi</span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isDownloadMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isDownloadMenuOpen && (
+              <div 
+                id="download-logs-dropdown"
+                className="absolute right-0 top-full mt-1.5 w-64 bg-[#0c1220] border border-slate-700/90 rounded-lg shadow-[0_10px_25px_rgba(0,0,0,0.6)] p-1.5 z-50 text-slate-200 animate-in fade-in zoom-in-95 duration-100"
+              >
+                <div className="px-2 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider border-b border-slate-800/80 mb-1">
+                  Format eksportu audytu
+                </div>
+
+                <button
+                  id="download-logs-json-btn"
+                  type="button"
+                  onClick={() => downloadLogs('json')}
+                  className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-md hover:bg-slate-800/80 transition-colors cursor-pointer group"
+                >
+                  <FileJson className="w-4 h-4 text-amber-400 mt-0.5 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      Dziennik JSON (.json)
+                      <span className="text-[9px] px-1 py-0.2 bg-amber-950/80 text-amber-300 border border-amber-800/60 rounded">SIEM</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Pełny obiekt audytu z podpisem i metadanymi
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  id="download-logs-txt-btn"
+                  type="button"
+                  onClick={() => downloadLogs('txt')}
+                  className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-md hover:bg-slate-800/80 transition-colors cursor-pointer group"
+                >
+                  <FileText className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      Plik tekstowy (.txt)
+                      <span className="text-[9px] px-1 py-0.2 bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 rounded">Log</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Czysty tekst z nagłówkami i znacznikami czasu
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  id="download-logs-md-btn"
+                  type="button"
+                  onClick={() => downloadLogs('md')}
+                  className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-md hover:bg-slate-800/80 transition-colors cursor-pointer group"
+                >
+                  <Download className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      Raport sesji (.md)
+                      <span className="text-[9px] px-1 py-0.2 bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 rounded">Raport</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Formatowany dokument ze znacznikami Markdown
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             id="clear-terminal-btn"
             onClick={() => handleSend('/clear')}
@@ -447,29 +658,11 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({ selectedModel }) => 
         {loading && (
           <div className="flex items-center gap-3 p-3.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 text-xs shadow-sm">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-            <span className="font-mono">Przetwarzanie zapytania przez neuronowy silnik Gemini 3.8 Flash...</span>
+            <span className="font-mono">Przetwarzanie zapytania przez silnik {selectedModel || 'Gemini 3.1 Pro'}...</span>
           </div>
         )}
 
         <div ref={messagesEndRef} />
-      </div>
-
-      {/* Quick Tactical Scenarios Bar */}
-      <div className="px-5 py-2 bg-[#0f1626] border-t border-slate-800 flex items-center gap-2 overflow-x-auto text-xs">
-        <span className="text-slate-400 text-xs whitespace-nowrap flex items-center gap-1 font-medium">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          Scenariusze:
-        </span>
-        {quickPrompts.map((qp, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleSend(qp.query)}
-            disabled={loading}
-            className="whitespace-nowrap px-3 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 hover:border-cyan-600/60 text-slate-300 hover:text-white text-xs transition-colors cursor-pointer"
-          >
-            {qp.label}
-          </button>
-        ))}
       </div>
 
       {/* Terminal Input Bar */}

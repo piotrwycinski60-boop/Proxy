@@ -96,7 +96,7 @@ export const TauriInspector: React.FC<TauriInspectorProps> = ({ selectedModel })
         body: JSON.stringify({
           tauriConfig: tauriConf,
           rustCode: rustIpc,
-          model: selectedModel || 'gemini-3.8-flash',
+          model: selectedModel || 'gemini-3.1-pro-preview',
         }),
       });
 
